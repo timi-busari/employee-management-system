@@ -1,0 +1,16 @@
+# API Gateway specific configuration
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+        - id: employee-service
+          uri: lb://employee-service
+          predicates:
+            - Path=/api/**

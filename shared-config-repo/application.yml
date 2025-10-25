@@ -1,0 +1,15 @@
+# Default configuration for all services
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.employeemgt: DEBUG
