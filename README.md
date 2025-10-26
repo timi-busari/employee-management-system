@@ -2,7 +2,11 @@
 
 > A comprehensive microservices-based Employee Management System built with Spring Boot
 
-## 🚀 Quick Start (1-Minute Setup)
+## � Security Notice
+
+**⚠️ IMPORTANT:** This project uses environment variables for security. Please read [SECURITY.md](SECURITY.md) before deploying. Default credentials are for development only.
+
+## �🚀 Quick Start (1-Minute Setup)
 
 ### Prerequisites
 - Docker and Docker Compose installed
@@ -16,7 +20,14 @@
    cd employee-management-system
    ```
 
-2. **Start everything with Docker**
+2. **Configure environment variables (Important!)**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your secure credentials
+   ```
+   **⚠️ See [SECURITY.md](SECURITY.md) for detailed security configuration.**
+
+3. **Start everything with Docker**
    ```bash
    ./docker-start.sh
    ```

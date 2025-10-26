@@ -6,9 +6,9 @@ services:
     image: postgres:15-alpine
     container_name: employee-mgt-postgres
     environment:
-      POSTGRES_DB: employee_management
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: ${POSTGRES_DB:-employee_management}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
     networks:
       - employee-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d employee_management"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-employee_management}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,9 +66,11 @@ services:
       - employee-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/auth_service_db
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=admin123
+      - SPRING_DATASOURCE_URL=${AUTH_DB_URL:-jdbc:postgresql://postgres:5432/auth_service_db}
+      - SPRING_DATASOURCE_USERNAME=${AUTH_DB_USERNAME:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${AUTH_DB_PASSWORD:-admin123}
+      - JWT_SECRET=${JWT_SECRET:-thisIsAVeryLongSecretKeyThatIsGuaranteedToBeAtLeast256BitsLongForTheJWTTokenGeneration1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
 
   # Employee Service
@@ -86,9 +88,9 @@ services:
       - employee-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/employee_service_db
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=admin123
+      - SPRING_DATASOURCE_URL=${EMPLOYEE_DB_URL:-jdbc:postgresql://postgres:5432/employee_service_db}
+      - SPRING_DATASOURCE_USERNAME=${EMPLOYEE_DB_USERNAME:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${EMPLOYEE_DB_PASSWORD:-admin123}
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
 
   # API Gateway

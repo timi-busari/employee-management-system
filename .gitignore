@@ -1,0 +1,44 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Security
+application-local.yml
+application-local.properties
+**/application-secrets.yml
+**/application-secrets.properties
+
+# Database
+*.db
+*.sqlite
+
+# Temporary files
+*.tmp
+*.temp
