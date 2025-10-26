@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: employee-mgt-postgres
+    environment:
+      POSTGRES_DB: employee_management
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - employee-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d employee_management"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Eureka Discovery Service
+  discovery-service:
+    build:
+      context: ./discovery-service
+      dockerfile: Dockerfile
+    container_name: employee-mgt-discovery
+    ports:
+      - "8761:8761"
+    networks:
+      - employee-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # Config Server
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: employee-mgt-config
+    ports:
+      - "8888:8888"
+    depends_on:
+      - discovery-service
+    networks:
+      - employee-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: employee-mgt-auth
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - discovery-service
+    networks:
+      - employee-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/auth_service_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+
+  # Employee Service
+  employee-service:
+    build:
+      context: ./employee-service
+      dockerfile: Dockerfile
+    container_name: employee-mgt-employee
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - discovery-service
+    networks:
+      - employee-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/employee_service_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin123
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: employee-mgt-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-service
+      - auth-service
+      - employee-service
+    networks:
+      - employee-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+
+volumes:
+  postgres_data:
+
+networks:
+  employee-network:
+    driver: bridge
