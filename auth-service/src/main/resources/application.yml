@@ -5,9 +5,9 @@ spring:
   application:
     name: auth-service
   datasource:
-    url: jdbc:postgresql://localhost:54321/employee_auth_db
-    username: seamlessdev
-    password: 300a17604c6c1768b9d9bdbf106e8376
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/auth_service_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -26,6 +26,11 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    hostname: localhost
 
 # JWT Configuration
 jwt:
@@ -34,4 +39,28 @@ jwt:
 
 logging:
   level:
-    com.employeemgt.auth: DEBUG
+    '[com.employeemgt.auth]': DEBUG
+    '[org.hibernate.SQL]': DEBUG
+    '[org.hibernate.type.descriptor.sql.BasicBinder]': TRACE
+
+# Database Initializer Configuration  
+database:
+  initializer:
+    postgres-url: jdbc:postgresql://localhost:5432/postgres
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    doc-expansion: none
+  show-actuator: false
+  group-configs:
+    - group: 'Authentication API'
+      packages-to-scan: com.employeemgt.auth.controller

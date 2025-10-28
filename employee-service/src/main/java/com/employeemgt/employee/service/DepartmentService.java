@@ -1,17 +1,24 @@
 package com.employeemgt.employee.service;
 
+import com.employeemgt.employee.dto.DepartmentFilterRequest;
 import com.employeemgt.employee.dto.DepartmentRequest;
 import com.employeemgt.employee.dto.DepartmentResponse;
 import com.employeemgt.employee.entity.Department;
+import com.employeemgt.employee.exception.BusinessRuleViolationException;
 import com.employeemgt.employee.exception.DuplicateResourceException;
 import com.employeemgt.employee.exception.ResourceNotFoundException;
 import com.employeemgt.employee.repository.DepartmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -20,21 +27,21 @@ public class DepartmentService {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    public List<DepartmentResponse> getAllDepartments() {
-        return departmentRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    public Page<DepartmentResponse> getDepartmentsWithFilters(DepartmentFilterRequest filter) {
+        Pageable pageable = PageRequest.of(filter.getPage(), filter.getPerPage());
+
+        // Build specification based on filters
+        Specification<Department> spec = buildSpecification(filter);
+        
+        // Execute query with specification and pagination
+        Page<Department> departmentPage = departmentRepository.findAll(spec, pageable);
+        
+        return departmentPage.map(this::convertToResponse);
     }
 
     public DepartmentResponse getDepartmentById(Long id) {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
-        return convertToResponse(department);
-    }
-
-    public DepartmentResponse getDepartmentByCode(String code) {
-        Department department = departmentRepository.findByCode(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with code: " + code));
         return convertToResponse(department);
     }
 
@@ -90,16 +97,36 @@ public class DepartmentService {
         // Check if department has employees
         Long employeeCount = departmentRepository.countEmployeesByDepartmentId(id);
         if (employeeCount > 0) {
-            throw new DuplicateResourceException("Cannot delete department with " + employeeCount + " employees. Please reassign employees first.");
+            throw new BusinessRuleViolationException("Cannot delete department that contains employees. Please reassign employees first.");
         }
 
         departmentRepository.delete(department);
     }
 
-    public List<DepartmentResponse> searchDepartmentsByName(String name) {
-        return departmentRepository.findByNameContaining(name).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    /**
+     * Build JPA Specification based on department filters
+     */
+    private Specification<Department> buildSpecification(DepartmentFilterRequest filter) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Apply filters based on request
+            if (filter.hasId()) {
+                predicates.add(criteriaBuilder.equal(root.get("id"), filter.getId()));
+            }
+
+            if (filter.hasCode()) {
+                predicates.add(criteriaBuilder.equal(root.get("code"), filter.getCode()));
+            }
+
+            if (filter.hasName()) {
+                String namePattern = "%" + filter.getName().trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("name")), namePattern));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     // Helper method to convert entity to response DTO

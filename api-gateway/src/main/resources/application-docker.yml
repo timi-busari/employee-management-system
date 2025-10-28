@@ -10,11 +10,11 @@ spring:
         - id: auth-service
           uri: lb://AUTH-SERVICE
           predicates:
-            - Path=/auth/**
+            - Path=/api/auth/**
         - id: employee-service
           uri: lb://EMPLOYEE-SERVICE
           predicates:
-            - Path=/api/**
+            - Path=/api/employees/**
       globalcors:
         cors-configurations:
           '[/**]':
@@ -29,6 +29,16 @@ eureka:
   instance:
     prefer-ip-address: true
     hostname: api-gateway
+
+# JWT Configuration (from environment variables)
+jwt:
+  secret: ${JWT_SECRET:thisIsAVeryLongSecretKeyThatIsGuaranteedToBeAtLeast256BitsLongForTheJWTTokenGeneration1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+logging:
+  level:
+    "[org.springframework.cloud.gateway]": DEBUG
+    "[reactor.netty]": DEBUG
 
 management:
   endpoints:

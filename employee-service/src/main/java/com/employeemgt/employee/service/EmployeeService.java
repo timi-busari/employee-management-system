@@ -1,5 +1,6 @@
 package com.employeemgt.employee.service;
 
+import com.employeemgt.employee.dto.EmployeeFilterRequest;
 import com.employeemgt.employee.dto.EmployeeRequest;
 import com.employeemgt.employee.dto.EmployeeResponse;
 import com.employeemgt.employee.entity.Department;
@@ -13,13 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -31,41 +32,16 @@ public class EmployeeService {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    public List<EmployeeResponse> getAllEmployees() {
-        return employeeRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public Page<EmployeeResponse> getAllEmployeesPaginated(int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-                   Sort.by(sortBy).descending() : 
-                   Sort.by(sortBy).ascending();
-        
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Employee> employeePage = employeeRepository.findAll(pageable);
-        
-        return employeePage.map(this::convertToResponse);
-    }
-
-    public EmployeeResponse getEmployeeById(Long id) {
-        Employee employee = employeeRepository.findByIdWithDepartment(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
-        return convertToResponse(employee);
-    }
-
-    public EmployeeResponse getEmployeeByEmployeeNumber(String employeeNumber) {
-        Employee employee = employeeRepository.findByEmployeeNumber(employeeNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with employee number: " + employeeNumber));
-        return convertToResponse(employee);
-    }
+    @Autowired
+    private EmployeeEventPublisher eventPublisher;
 
     public EmployeeResponse createEmployee(EmployeeRequest request) {
         // Check for duplicate employee number
         if (employeeRepository.existsByEmployeeNumber(request.getEmployeeNumber())) {
-            throw new DuplicateResourceException("Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
+            throw new DuplicateResourceException(
+                    "Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
         }
-        
+
         // Check for duplicate email
         if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Employee with email '" + request.getEmail() + "' already exists");
@@ -73,7 +49,8 @@ public class EmployeeService {
 
         // Verify department exists
         Department department = departmentRepository.findById(request.getDepartmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.getDepartmentId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Department not found with id: " + request.getDepartmentId()));
 
         // Verify manager exists if provided
         if (request.getManagerId() != null) {
@@ -90,8 +67,7 @@ public class EmployeeService {
                 request.getHireDate(),
                 request.getJobTitle(),
                 request.getSalary(),
-                department
-        );
+                department);
 
         employee.setPhoneNumber(request.getPhoneNumber());
         employee.setStatus(request.getStatus());
@@ -99,6 +75,17 @@ public class EmployeeService {
         employee.setNotes(request.getNotes());
 
         Employee savedEmployee = employeeRepository.save(employee);
+
+        // Publish employee created event
+        eventPublisher.publishEmployeeCreated(
+                savedEmployee.getId(),
+                savedEmployee.getFirstName(),
+                savedEmployee.getLastName(),
+                savedEmployee.getEmail(),
+                savedEmployee.getDepartment().getName(),
+                "system" // TODO: Get actual user from security context
+        );
+
         return convertToResponse(savedEmployee);
     }
 
@@ -107,20 +94,22 @@ public class EmployeeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
         // Check for duplicate employee number (excluding current employee)
-        if (employeeRepository.existsByEmployeeNumber(request.getEmployeeNumber()) && 
-            !existingEmployee.getEmployeeNumber().equals(request.getEmployeeNumber())) {
-            throw new DuplicateResourceException("Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
+        if (employeeRepository.existsByEmployeeNumber(request.getEmployeeNumber()) &&
+                !existingEmployee.getEmployeeNumber().equals(request.getEmployeeNumber())) {
+            throw new DuplicateResourceException(
+                    "Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
         }
-        
+
         // Check for duplicate email (excluding current employee)
-        if (employeeRepository.existsByEmail(request.getEmail()) && 
-            !existingEmployee.getEmail().equals(request.getEmail())) {
+        if (employeeRepository.existsByEmail(request.getEmail()) &&
+                !existingEmployee.getEmail().equals(request.getEmail())) {
             throw new DuplicateResourceException("Employee with email '" + request.getEmail() + "' already exists");
         }
 
         // Verify department exists
         Department department = departmentRepository.findById(request.getDepartmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.getDepartmentId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Department not found with id: " + request.getDepartmentId()));
 
         // Verify manager exists if provided
         if (request.getManagerId() != null) {
@@ -144,6 +133,17 @@ public class EmployeeService {
         existingEmployee.setNotes(request.getNotes());
 
         Employee updatedEmployee = employeeRepository.save(existingEmployee);
+
+        // Publish employee updated event
+        eventPublisher.publishEmployeeUpdated(
+                updatedEmployee.getId(),
+                updatedEmployee.getFirstName(),
+                updatedEmployee.getLastName(),
+                updatedEmployee.getEmail(),
+                updatedEmployee.getDepartment().getName(),
+                "system" // TODO: Get actual user from security context
+        );
+
         return convertToResponse(updatedEmployee);
     }
 
@@ -151,37 +151,95 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
+        // Publish employee deleted event before deletion
+        eventPublisher.publishEmployeeDeleted(
+                employee.getId(),
+                employee.getFirstName(),
+                employee.getLastName(),
+                employee.getEmail(),
+                employee.getDepartment() != null ? employee.getDepartment().getName() : "Unknown",
+                "system" // TODO: Get actual user from security context
+        );
+
         employeeRepository.delete(employee);
     }
 
-    public List<EmployeeResponse> getEmployeesByDepartment(Long departmentId) {
-        return employeeRepository.findByDepartmentId(departmentId).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    /**
+     * Get employees with filters - role-based access control handled at controller level
+     * 
+     * @param filterRequest The filter criteria
+     * @return Page of employees based on filters
+     */
+    public Page<EmployeeResponse> getEmployeesWithFilters(EmployeeFilterRequest filterRequest) {
+        Pageable pageable = PageRequest.of(filterRequest.getPage(), filterRequest.getPerPage());
+
+        // Build specification based on filters only
+        Specification<Employee> spec = buildSpecification(filterRequest);
+
+        Page<Employee> employeePage = employeeRepository.findAll(spec, pageable);
+        return employeePage.map(this::convertToResponse);
     }
 
-    public List<EmployeeResponse> getEmployeesByStatus(EmployeeStatus status) {
-        return employeeRepository.findByStatus(status).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    /**
+     * Get employee by ID (access control handled at controller level)
+     * 
+     * @param id The employee ID
+     * @return Employee details
+     */
+    public EmployeeResponse getEmployeeById(Long id) {
+        Employee employee = employeeRepository.findByIdWithDepartment(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
+
+        return convertToResponse(employee);
     }
 
-    public List<EmployeeResponse> getEmployeesByManager(Long managerId) {
-        return employeeRepository.findByManagerId(managerId).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
+    /**
+     * Build JPA Specification based on filters only
+     * Role-based access control is handled at the controller level
+     */
+    private Specification<Employee> buildSpecification(EmployeeFilterRequest filterRequest) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-    public List<EmployeeResponse> searchEmployeesByName(String name) {
-        return employeeRepository.findByNameContaining(name).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
+            // Apply filters based on request
+            if (filterRequest.getDepartmentId() != null) {
+                predicates
+                        .add(criteriaBuilder.equal(root.get("department").get("id"), filterRequest.getDepartmentId()));
+            }
 
-    public List<EmployeeResponse> getEmployeesByHireDateRange(LocalDate startDate, LocalDate endDate) {
-        return employeeRepository.findByHireDateBetween(startDate, endDate).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+            if (filterRequest.getStatus() != null && !filterRequest.getStatus().trim().isEmpty()) {
+                try {
+                    EmployeeStatus status = EmployeeStatus.valueOf(filterRequest.getStatus().toUpperCase());
+                    predicates.add(criteriaBuilder.equal(root.get("status"), status));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status value - ignore filter
+                }
+            }
+
+            if (filterRequest.getManagerId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("managerId"), filterRequest.getManagerId()));
+            }
+
+            if (filterRequest.getName() != null && !filterRequest.getName().trim().isEmpty()) {
+                String namePattern = "%" + filterRequest.getName().trim().toLowerCase() + "%";
+                Predicate firstNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("firstName")), namePattern);
+                Predicate lastNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("lastName")), namePattern);
+                predicates.add(criteriaBuilder.or(firstNameMatch, lastNameMatch));
+            }
+
+            if (filterRequest.getHireDateFrom() != null) {
+                predicates.add(
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("hireDate"), filterRequest.getHireDateFrom()));
+            }
+
+            if (filterRequest.getHireDateTo() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("hireDate"), filterRequest.getHireDateTo()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     // Helper method to convert entity to response DTO
@@ -208,8 +266,7 @@ public class EmployeeService {
             EmployeeResponse.DepartmentSummary deptSummary = new EmployeeResponse.DepartmentSummary(
                     employee.getDepartment().getId(),
                     employee.getDepartment().getName(),
-                    employee.getDepartment().getCode()
-            );
+                    employee.getDepartment().getCode());
             response.setDepartment(deptSummary);
         }
 

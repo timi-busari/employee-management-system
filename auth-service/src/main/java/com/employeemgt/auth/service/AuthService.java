@@ -69,6 +69,9 @@ public class AuthService {
             registerRequest.getLastName()
         );
         
+        // Set role from request (defaults to USER if not specified)
+        user.setRole(registerRequest.getRole() != null ? registerRequest.getRole() : com.employeemgt.auth.entity.Role.USER);
+        
         User savedUser = userService.createUser(user);
         
         // Generate token for the new user

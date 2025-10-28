@@ -1,11 +1,14 @@
 package com.employeemgt.auth.dto;
 
+import com.employeemgt.auth.entity.Role;
+
 public class RegisterRequest {
     private String username;
     private String email;
     private String password;
     private String firstName;
     private String lastName;
+    private Role role = Role.USER; // Default to USER role
     
     // Constructors
     public RegisterRequest() {}
@@ -16,6 +19,16 @@ public class RegisterRequest {
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.role = Role.USER; // Default role
+    }
+    
+    public RegisterRequest(String username, String email, String password, String firstName, String lastName, Role role) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.role = role;
     }
     
     // Getters and Setters
@@ -57,5 +70,13 @@ public class RegisterRequest {
     
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+    
+    public Role getRole() {
+        return role;
+    }
+    
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

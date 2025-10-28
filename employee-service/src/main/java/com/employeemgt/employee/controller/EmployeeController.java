@@ -1,20 +1,20 @@
 package com.employeemgt.employee.controller;
 
+import com.employeemgt.employee.dto.ApiResponse;
+import com.employeemgt.employee.dto.EmployeeFilterRequest;
 import com.employeemgt.employee.dto.EmployeeRequest;
 import com.employeemgt.employee.dto.EmployeeResponse;
-import com.employeemgt.employee.entity.Employee.EmployeeStatus;
+import com.employeemgt.employee.dto.PaginatedApiResponse;
+import com.employeemgt.employee.security.RoleRequired;
 import com.employeemgt.employee.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,93 +25,110 @@ public class EmployeeController {
     @Autowired
     private EmployeeService employeeService;
 
-    @GetMapping
-    public ResponseEntity<List<EmployeeResponse>> getAllEmployees() {
-        List<EmployeeResponse> employees = employeeService.getAllEmployees();
-        return ResponseEntity.ok(employees);
-    }
-
-    @GetMapping("/paginated")
-    public ResponseEntity<Page<EmployeeResponse>> getAllEmployeesPaginated(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-        Page<EmployeeResponse> employees = employeeService.getAllEmployeesPaginated(page, size, sortBy, sortDir);
-        return ResponseEntity.ok(employees);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
-        EmployeeResponse employee = employeeService.getEmployeeById(id);
-        return ResponseEntity.ok(employee);
-    }
-
-    @GetMapping("/employee-number/{employeeNumber}")
-    public ResponseEntity<EmployeeResponse> getEmployeeByEmployeeNumber(@PathVariable String employeeNumber) {
-        EmployeeResponse employee = employeeService.getEmployeeByEmployeeNumber(employeeNumber);
-        return ResponseEntity.ok(employee);
-    }
-
     @PostMapping
-    public ResponseEntity<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeRequest request) {
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(@Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse employee = employeeService.createEmployee(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(employee);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(employee));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EmployeeResponse> updateEmployee(@PathVariable Long id, 
-                                                          @Valid @RequestBody EmployeeRequest request) {
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<ApiResponse<EmployeeResponse>> updateEmployee(
+            @PathVariable Long id, 
+            @Valid @RequestBody EmployeeRequest request) {
+        
         EmployeeResponse employee = employeeService.updateEmployee(id, request);
-        return ResponseEntity.ok(employee);
+        return ResponseEntity.ok(ApiResponse.updated(employee));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteEmployee(@PathVariable Long id) {
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<ApiResponse<Void>> deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Employee deleted successfully");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<EmployeeResponse>> getEmployeesByDepartment(@PathVariable Long departmentId) {
-        List<EmployeeResponse> employees = employeeService.getEmployeesByDepartment(departmentId);
-        return ResponseEntity.ok(employees);
+    // Admin endpoint - full filtering capabilities
+    @GetMapping("/all")
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getAllEmployeesForAdmin(EmployeeFilterRequest filter) {
+        Page<EmployeeResponse> employees = employeeService.getEmployeesWithFilters(filter);
+        return ResponseEntity.ok(PaginatedApiResponse.of(employees, "All employees retrieved successfully"));
     }
 
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<EmployeeResponse>> getEmployeesByStatus(@PathVariable EmployeeStatus status) {
-        List<EmployeeResponse> employees = employeeService.getEmployeesByStatus(status);
-        return ResponseEntity.ok(employees);
+    // Admin endpoint - view any employee by ID
+    @GetMapping("/{id}")
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeByIdForAdmin(@PathVariable Long id) {
+        EmployeeResponse employee = employeeService.getEmployeeById(id);
+        return ResponseEntity.ok(ApiResponse.success("Employee details retrieved successfully", employee));
     }
 
-    @GetMapping("/manager/{managerId}")
-    public ResponseEntity<List<EmployeeResponse>> getEmployeesByManager(@PathVariable Long managerId) {
-        List<EmployeeResponse> employees = employeeService.getEmployeesByManager(managerId);
-        return ResponseEntity.ok(employees);
+    // Manager endpoint - view employees in their department
+    @GetMapping("/department")
+    @RoleRequired({"MANAGER"})
+    public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getEmployeesInDepartment(
+            EmployeeFilterRequest filter,
+            @RequestHeader(value = "X-User-Department-Id") String userDepartmentIdHeader) {
+        
+        Long userDepartmentId;
+        try {
+            userDepartmentId = Long.parseLong(userDepartmentIdHeader);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("X-User-Department-Id header must be a valid number");
+        }
+        
+        // Override department filter to ensure manager only sees their department
+        filter.setDepartmentId(userDepartmentId);
+        
+        Page<EmployeeResponse> employees = employeeService.getEmployeesWithFilters(filter);
+        return ResponseEntity.ok(PaginatedApiResponse.of(employees, "Department employees retrieved successfully"));
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<EmployeeResponse>> searchEmployees(@RequestParam String name) {
-        List<EmployeeResponse> employees = employeeService.searchEmployeesByName(name);
-        return ResponseEntity.ok(employees);
-    }
-
-    @GetMapping("/hire-date-range")
-    public ResponseEntity<List<EmployeeResponse>> getEmployeesByHireDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<EmployeeResponse> employees = employeeService.getEmployeesByHireDateRange(startDate, endDate);
-        return ResponseEntity.ok(employees);
+    // Employee endpoint - view their own details
+    @GetMapping("/view")
+    @RoleRequired({"USER"})
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getMyDetails(
+            @RequestHeader(value = "X-User-Id") String userIdHeader) {
+        
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdHeader);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("X-User-Id header must be a valid number");
+        }
+        
+        EmployeeResponse employee = employeeService.getEmployeeById(userId);
+        return ResponseEntity.ok(ApiResponse.success("Employee profile retrieved successfully", employee));
     }
 
     @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
+    public ResponseEntity<ApiResponse<Map<String, String>>> health() {
         Map<String, String> status = new HashMap<>();
         status.put("status", "UP");
         status.put("service", "employee-service");
         status.put("module", "employees");
-        return ResponseEntity.ok(status);
+        return ResponseEntity.ok(ApiResponse.success("Service is healthy", status));
+    }
+
+    // Simple test endpoint without auth for gateway testing
+    @GetMapping("/public/test")
+    public ResponseEntity<ApiResponse<Map<String, String>>> publicTest() {
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Public test endpoint working");
+        response.put("timestamp", java.time.LocalDateTime.now().toString());
+        response.put("access", "No authentication required");
+        return ResponseEntity.ok(ApiResponse.success("Public endpoint test successful", response));
+    }
+
+    // Simple test endpoint
+    @GetMapping("/admin/test")
+    @RoleRequired({"ADMIN"})
+    public ResponseEntity<ApiResponse<Map<String, String>>> test() {
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Admin test endpoint working");
+        response.put("timestamp", java.time.LocalDateTime.now().toString());
+        return ResponseEntity.ok(ApiResponse.success("Admin endpoint test successful", response));
     }
 }

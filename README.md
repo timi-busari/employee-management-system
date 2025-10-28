@@ -57,9 +57,10 @@ That's it! The system will:
 
 #### Steps
 1. **Ensure PostgreSQL is running**
-   - Your PostgreSQL should be accessible at `localhost:54321`
-   - Username: `seamlessdev`
-   - Password: `300a17604c6c1768b9d9bdbf106e8376`
+   - Your PostgreSQL should be accessible at `postgres:5432` (Docker) or `localhost:5432` (local)
+   - Username: `admin`
+   - Password: `admin123`
+   - Databases: `auth_service_db`, `employee_service_db`
 
 2. **Start everything with one command**
    ```bash
@@ -77,6 +78,8 @@ Once started, access these URLs:
 | 🔐 **Auth Service** | http://localhost:8082 | Authentication |
 | 👥 **Employee Service** | http://localhost:8083 | Employee management |
 | ⚙️ **Config Server** | http://localhost:8888 | Configuration |
+| 🗄️ **PostgreSQL** | localhost:5432 | Database |
+| 📬 **Kafka** | localhost:9092 | Event streaming |
 
 ## 🧪 Quick API Tests
 
@@ -119,8 +122,19 @@ curl -X GET http://localhost:8080/api/departments \
          │                       │                       │
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  Auth Service   │    │Employee Service │    │   PostgreSQL    │
-│   Port: 8082    │    │   Port: 8083    │    │   Port: 54321   │
+│   Port: 8082    │    │   Port: 8083    │    │   Port: 5432    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │
+         └───────────────────────┼───────────────────────┐
+                                 │                       │
+         ┌───────────────────────┼───────────────────────┐
+         │                       │                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Zookeeper     │    │     Kafka       │    │  Kafka Topics   │
+│   Port: 2181    │    │   Port: 9092    │    │ employee-events │
+└─────────────────┘    └─────────────────┘    │department-events│
+                                               │  audit-events   │
+                                               └─────────────────┘
 ```
 
 ## 📋 Features
@@ -144,9 +158,17 @@ curl -X GET http://localhost:8080/api/departments \
 
 ### ✅ Microservices Architecture
 - Service discovery with Eureka
-- Centralized configuration
-- API Gateway routing
-- Load balancing
+- Centralized configuration with Spring Cloud Config
+- API Gateway routing and load balancing
+- Event-driven architecture with Kafka
+- Distributed tracing and monitoring
+
+### ✅ Event-Driven Features
+- Kafka integration for real-time events
+- Employee lifecycle events (created, updated, deleted)
+- Department events for organizational changes
+- Audit events for compliance tracking
+- Asynchronous processing for better performance
 
 ### ✅ Database Management
 - PostgreSQL with Flyway migrations
@@ -194,23 +216,50 @@ curl -X GET http://localhost:8080/api/departments \
 
 - **Framework**: Spring Boot 3.5.7
 - **Security**: Spring Security + JWT
-- **Database**: PostgreSQL + Flyway
+- **Database**: PostgreSQL + Flyway migrations
 - **Service Discovery**: Netflix Eureka
-- **API Gateway**: Spring Cloud Gateway
+- **API Gateway**: Spring Cloud Gateway (Reactive)
 - **Configuration**: Spring Cloud Config
+- **Message Broker**: Apache Kafka
+- **Event Processing**: Spring Kafka
 - **Build Tool**: Maven
 - **Java Version**: 17+
+- **Containerization**: Docker & Docker Compose
 
 ## 📊 Database Schema
 
-The system automatically creates and manages these tables:
+The system automatically creates and manages these databases and tables:
 
-### Auth Service (`employee_auth_db`)
+### Auth Service (`auth_service_db`)
 - `users` - User authentication and profile data
+- `roles` - User role definitions
+- `user_roles` - User-role relationships
 
-### Employee Service (`employee_db`)
-- `departments` - Department information
+### Employee Service (`employee_service_db`)
+- `departments` - Department information and hierarchy
 - `employees` - Employee data with department relationships
+- `employee_history` - Employee change tracking
+
+## 📬 Kafka Event Topics
+
+The system publishes events to these Kafka topics for real-time processing:
+
+### Employee Events (`employee-events`)
+- **employee.created** - New employee registered
+- **employee.updated** - Employee information changed  
+- **employee.deleted** - Employee removed from system
+
+### Department Events (`department-events`)
+- **department.created** - New department established
+- **department.updated** - Department information modified
+- **department.deleted** - Department dissolved
+
+### Audit Events (`audit-events`)
+- **user.login** - User authentication events
+- **data.access** - Data access tracking
+- **security.violation** - Security-related incidents
+
+**Event Structure**: All events include timestamp, user context, and relevant data payload for comprehensive audit trails.
 
 ## 🐛 Troubleshooting
 
@@ -221,8 +270,10 @@ The system automatically creates and manages these tables:
    - Check with `./stop-services.sh` first
 
 2. **Database connection issues**
-   - Ensure PostgreSQL is running on port 54321
-   - Check credentials in application.yml files
+   - Ensure PostgreSQL is running on port 5432
+   - Check database names: `auth_service_db`, `employee_service_db`
+   - Verify credentials: username `admin`, password `admin123`
+   - For Docker: databases are auto-created via init-db.sql
 
 3. **Services not registering with Eureka**
    - Wait 30-60 seconds for registration
@@ -239,18 +290,20 @@ Service logs are available in the `logs/` directory:
 
 ## 📈 Assessment Requirements Checklist
 
-- ✅ **Microservices Architecture**: 5 services (Discovery, Config, Gateway, Auth, Employee)
-- ✅ **Spring Boot**: Latest version with best practices
+- ✅ **Microservices Architecture**: 8 services (Discovery, Config, Gateway, Auth, Employee, Kafka, Zookeeper, PostgreSQL)
+- ✅ **Spring Boot**: Latest version (3.5.7) with best practices
 - ✅ **Spring Security**: JWT + RBAC implementation
-- ✅ **PostgreSQL**: With Flyway migrations
+- ✅ **PostgreSQL**: With Flyway migrations and proper database design
 - ✅ **RESTful APIs**: Proper HTTP methods and status codes
-- ✅ **Service Discovery**: Eureka integration
-- ✅ **API Gateway**: Centralized routing
-- ✅ **Configuration Management**: Externalized config
-- ✅ **Error Handling**: Global exception handling
-- ✅ **Validation**: Bean validation with proper messages
-- ✅ **Documentation**: Comprehensive setup and API docs
-- ✅ **Easy Setup**: One-command startup script
+- ✅ **Service Discovery**: Eureka integration with health checks
+- ✅ **API Gateway**: Centralized routing with reactive programming
+- ✅ **Configuration Management**: Externalized config with Spring Cloud Config
+- ✅ **Event-Driven Architecture**: Kafka integration for real-time events
+- ✅ **Error Handling**: Global exception handling with proper responses
+- ✅ **Validation**: Bean validation with comprehensive error messages
+- ✅ **Documentation**: Comprehensive setup and API documentation
+- ✅ **Easy Setup**: Docker Compose for one-command deployment
+- ✅ **Production Ready**: Environment variables, health checks, monitoring
 
 ---
 

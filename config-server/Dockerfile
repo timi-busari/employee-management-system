@@ -14,9 +14,6 @@ RUN chmod +x ./mvnw
 # Copy source code
 COPY src src
 
-# Copy shared config repository
-COPY ../shared-config-repo shared-config-repo
-
 # Build the application
 RUN ./mvnw clean package -DskipTests
 
