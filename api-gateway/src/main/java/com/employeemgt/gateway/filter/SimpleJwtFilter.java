@@ -62,12 +62,17 @@ public class SimpleJwtFilter implements GlobalFilter, Ordered {
         // Add user info to headers (simple)
         String username = jwtUtil.extractUsername(token);
         String role = jwtUtil.extractRole(token);
+        Long userId = jwtUtil.extractUserId(token);
+        String employeeCode = jwtUtil.extractEmployeeCode(token);
         
-        logger.debug("Adding headers - Username: {}, Role: {}", username, role);
+        logger.debug("Adding headers - Username: {}, Role: {}, UserId: {}, EmployeeCode: {}", 
+                    username, role, userId, employeeCode);
         
         ServerHttpRequest modifiedRequest = request.mutate()
             .header("X-User-Name", username)
             .header("X-User-Role", role != null ? role : "USER")
+            .header("X-User-Id", userId != null ? String.valueOf(userId) : "")
+            .header("X-Employee-Code", employeeCode != null ? employeeCode : "")
             .build();
             
         return chain.filter(exchange.mutate().request(modifiedRequest).build());
@@ -75,6 +80,7 @@ public class SimpleJwtFilter implements GlobalFilter, Ordered {
     
     private boolean isPublicPath(String path) {
         return path.startsWith("/api/auth/") || 
+               path.startsWith("/api/employees/public/") ||
                path.contains("/health") || 
                path.contains("/actuator") ||
                path.equals("/") ||

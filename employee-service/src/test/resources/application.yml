@@ -1,0 +1,32 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: employee-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+  cloud:
+    config:
+      enabled: false
+  config:
+    import: "" # Override the config server import
+  devtools:
+    restart:
+      enabled: false
+
+logging:
+  level:
+    '[com.employeemgt.employee]': DEBUG
+    '[org.hibernate.SQL]': DEBUG

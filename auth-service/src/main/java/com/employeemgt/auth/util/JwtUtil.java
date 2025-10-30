@@ -37,6 +37,14 @@ public class JwtUtil {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
     
+    public Long extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+    
+    public String extractEmployeeCode(String token) {
+        return extractClaim(token, claims -> claims.get("employeeCode", String.class));
+    }
+    
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
@@ -60,10 +68,14 @@ public class JwtUtil {
     
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        // Add role to claims if UserDetails is our User entity
+        // Add role, user ID, and employee code to claims if UserDetails is our User entity
         if (userDetails instanceof com.employeemgt.auth.entity.User) {
             com.employeemgt.auth.entity.User user = (com.employeemgt.auth.entity.User) userDetails;
             claims.put("role", user.getRole().name());
+            claims.put("userId", user.getId());
+            if (user.getEmployeeCode() != null) {
+                claims.put("employeeCode", user.getEmployeeCode());
+            }
         }
         return createToken(claims, userDetails.getUsername());
     }

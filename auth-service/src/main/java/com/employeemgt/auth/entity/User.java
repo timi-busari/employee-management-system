@@ -34,6 +34,9 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
     
+    @Column(name = "employee_code", unique = true)
+    private String employeeCode; // Links to employee service
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
     
@@ -129,6 +132,14 @@ public class User implements UserDetails {
     
     public void setRole(Role role) {
         this.role = role;
+    }
+    
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+    
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
     
     public LocalDateTime getCreatedAt() {

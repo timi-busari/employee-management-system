@@ -17,10 +17,10 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Employee number is required")
-    @Size(min = 3, max = 20, message = "Employee number must be between 3 and 20 characters")
-    @Column(name = "employee_number", nullable = false, unique = true)
-    private String employeeNumber;
+    @NotBlank(message = "Employee code is required")
+    @Size(min = 3, max = 20, message = "Employee code must be between 3 and 20 characters")
+    @Column(name = "employee_code", nullable = false, unique = true)
+    private String employeeCode;
 
     @NotBlank(message = "First name is required")
     @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
@@ -65,6 +65,7 @@ public class Employee {
     private Department department;
 
     @Column(name = "manager_id")
+    // References another employee who is the manager
     private Long managerId;
 
     @Size(max = 1000, message = "Notes cannot exceed 1000 characters")
@@ -82,9 +83,9 @@ public class Employee {
     // Constructors
     public Employee() {}
 
-    public Employee(String employeeNumber, String firstName, String lastName, String email, 
+    public Employee(String employeeCode, String firstName, String lastName, String email, 
                    LocalDate hireDate, String jobTitle, BigDecimal salary, Department department) {
-        this.employeeNumber = employeeNumber;
+        this.employeeCode = employeeCode;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -108,12 +109,12 @@ public class Employee {
         this.id = id;
     }
 
-    public String getEmployeeNumber() {
-        return employeeNumber;
+    public String getEmployeeCode() {
+        return employeeCode;
     }
 
-    public void setEmployeeNumber(String employeeNumber) {
-        this.employeeNumber = employeeNumber;
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
 
     public String getFirstName() {
@@ -233,7 +234,7 @@ public class Employee {
     public String toString() {
         return "Employee{" +
                 "id=" + id +
-                ", employeeNumber='" + employeeNumber + '\'' +
+                ", employeeCode='" + employeeCode + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
