@@ -4,47 +4,18 @@ server:
 spring:
   application:
     name: api-gateway
-  cloud:
-    gateway:
-      server:
-        webflux:
-          routes:
-            - id: auth-service
-              uri: lb://AUTH-SERVICE
-              predicates:
-                - Path=/api/auth/**
-            - id: employee-service
-              uri: lb://EMPLOYEE-SERVICE
-              predicates:
-                - Path=/api/employees/**
-            - id: department-service
-              uri: lb://EMPLOYEE-SERVICE
-              predicates:
-                - Path=/api/departments/**
-          globalcors:
-            cors-configurations:
-              "[/**]":
-                allowedOrigins: "*"
-                allowedMethods: "*"
-                allowedHeaders: "*"
+  config:
+    import: "${SPRING_CONFIG_IMPORT:configserver:http://localhost:8888}"
+  devtools:
+    restart:
+      enabled: true
+      poll-interval: 2s
+      quiet-period: 1s
+    livereload:
+      enabled: true
+      port: 35731
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-
-# JWT Configuration (same as auth service)
-jwt:
-  secret: bXlTZWNyZXRLZXkxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVoxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=
-  expiration: 86400000 # 24 hours in milliseconds
-
+# Local overrides only (everything else comes from config server)
 logging:
   level:
     "[org.springframework.cloud.gateway]": DEBUG
-    "[reactor.netty]": DEBUG
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: gateway,health,info

@@ -52,6 +52,11 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/application/default || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # Auth Service
   auth-service:
@@ -62,18 +67,22 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      - postgres
-      - discovery-service
+      config-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - employee-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=${AUTH_DB_URL:-jdbc:postgresql://postgres:5432/auth_service_db}
-      - SPRING_DATASOURCE_USERNAME=${AUTH_DB_USERNAME:-admin}
-      - SPRING_DATASOURCE_PASSWORD=${AUTH_DB_PASSWORD:-admin123}
-      - JWT_SECRET=${JWT_SECRET:-thisIsAVeryLongSecretKeyThatIsGuaranteedToBeAtLeast256BitsLongForTheJWTTokenGeneration1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # Employee Service
   employee-service:
@@ -84,16 +93,22 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - postgres
-      - discovery-service
+      config-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - employee-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=${EMPLOYEE_DB_URL:-jdbc:postgresql://postgres:5432/employee_service_db}
-      - SPRING_DATASOURCE_USERNAME=${EMPLOYEE_DB_USERNAME:-admin}
-      - SPRING_DATASOURCE_PASSWORD=${EMPLOYEE_DB_PASSWORD:-admin123}
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # API Gateway
   api-gateway:
@@ -104,16 +119,22 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - discovery-service
-      - auth-service
-      - employee-service
+      config-server:
+        condition: service_started
+      auth-service:
+        condition: service_started
+      employee-service:
+        condition: service_started
     networks:
       - employee-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
-      - JWT_SECRET=${JWT_SECRET:-thisIsAVeryLongSecretKeyThatIsGuaranteedToBeAtLeast256BitsLongForTheJWTTokenGeneration1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # Zookeeper for Kafka
   zookeeper:
@@ -154,6 +175,11 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   postgres_data:

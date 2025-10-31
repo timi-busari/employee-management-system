@@ -8,9 +8,8 @@ import java.time.LocalDate;
 
 public class EmployeeRequest {
 
-    @NotBlank(message = "Employee number is required")
-    @Size(min = 3, max = 20, message = "Employee number must be between 3 and 20 characters")
-    private String employeeNumber;
+    @Size(min = 3, max = 20, message = "Employee code must be between 3 and 20 characters")
+    private String employeeCode; // Optional - will be auto-generated if not provided
 
     @NotBlank(message = "First name is required")
     @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
@@ -51,9 +50,9 @@ public class EmployeeRequest {
     // Constructors
     public EmployeeRequest() {}
 
-    public EmployeeRequest(String employeeNumber, String firstName, String lastName, String email, 
+    public EmployeeRequest(String employeeCode, String firstName, String lastName, String email, 
                           LocalDate hireDate, String jobTitle, BigDecimal salary, Long departmentId) {
-        this.employeeNumber = employeeNumber;
+        this.employeeCode = employeeCode;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -64,12 +63,12 @@ public class EmployeeRequest {
     }
 
     // Getters and Setters
-    public String getEmployeeNumber() {
-        return employeeNumber;
+    public String getEmployeeCode() {
+        return employeeCode;
     }
 
-    public void setEmployeeNumber(String employeeNumber) {
-        this.employeeNumber = employeeNumber;
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
 
     public String getFirstName() {

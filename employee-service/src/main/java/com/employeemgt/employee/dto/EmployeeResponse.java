@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class EmployeeResponse {
 
     private Long id;
-    private String employeeNumber;
+    private String employeeCode;
     private String firstName;
     private String lastName;
     private String fullName;
@@ -77,12 +77,12 @@ public class EmployeeResponse {
         this.id = id;
     }
 
-    public String getEmployeeNumber() {
-        return employeeNumber;
+    public String getEmployeeCode() {
+        return employeeCode;
     }
 
-    public void setEmployeeNumber(String employeeNumber) {
-        this.employeeNumber = employeeNumber;
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
 
     public String getFirstName() {

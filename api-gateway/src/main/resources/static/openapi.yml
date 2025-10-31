@@ -1,0 +1,1513 @@
+openapi: 3.0.3
+info:
+  title: Employee Management System API
+  description: |
+    Comprehensive Employee Management System API Gateway
+    
+    ## Overview
+    This microservices-based Employee Management System provides complete functionality for managing employees, departments, and authentication through a unified API Gateway.
+    
+    ## Authentication
+    - **JWT Bearer Token**: All protected endpoints require a valid JWT token
+    - **Test Credentials**: Use POST /api/auth/login with:
+      - Username: `admin`
+      - Password: `admin123`
+    
+    ## Services
+    - **Auth Service**: User authentication and authorization
+    - **Employee Service**: Employee and department management
+    - **API Gateway**: Unified entry point (this documentation)
+    
+    ## Service URLs
+    - API Gateway: http://localhost:8080
+    - Auth Service: http://localhost:8082
+    - Employee Service: http://localhost:8083
+    
+    ## Quick Start
+    1. Authenticate via `/api/auth/login`
+    2. Copy the JWT token from response
+    3. Click "Authorize" button and enter: `Bearer YOUR_TOKEN`
+    4. Explore protected endpoints
+    
+  version: 1.0.0
+  contact:
+    name: Employee Management System
+    email: support@employeemgt.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway (Primary)
+  - url: http://localhost:8082
+    description: Auth Service (Direct)
+  - url: http://localhost:8083
+    description: Employee Service (Direct)
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from /api/auth/login endpoint.
+        Format: Bearer <token>
+        
+        **Quick Test**: Login with admin/admin123 to get a token
+
+  schemas:
+    # Common Response Schemas
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          example: true
+        message:
+          type: string
+          description: Human-readable response message
+          example: "Operation completed successfully"
+        data:
+          type: object
+          description: Response payload data
+          nullable: true
+      required:
+        - success
+        - message
+
+    # Authentication Schemas
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username for authentication
+          example: "admin"
+        password:
+          type: string
+          description: Password for authentication
+          example: "admin123"
+          format: password
+      required:
+        - username
+        - password
+
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Unique username
+          example: "john.doe"
+          minLength: 3
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "john.doe@company.com"
+        password:
+          type: string
+          description: User password
+          example: "SecurePass123!"
+          format: password
+          minLength: 6
+        firstName:
+          type: string
+          description: User first name
+          example: "John"
+          minLength: 2
+          maxLength: 50
+        lastName:
+          type: string
+          description: User last name
+          example: "Doe"
+          minLength: 2
+          maxLength: 50
+        role:
+          type: string
+          enum: [USER, MANAGER, ADMIN]
+          description: User role
+          example: "USER"
+          default: "USER"
+      required:
+        - username
+        - email
+        - password
+        - firstName
+        - lastName
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        type:
+          type: string
+          description: Token type
+          example: "Bearer"
+        username:
+          type: string
+          description: Authenticated username
+          example: "admin"
+        email:
+          type: string
+          description: User email
+          example: "admin@company.com"
+      required:
+        - token
+        - type
+        - username
+
+    # Employee Schemas
+    EmployeeRequest:
+      type: object
+      properties:
+        employeeNumber:
+          type: string
+          description: Unique employee identifier (auto-generated if not provided)
+          example: "EMP202410001"
+          minLength: 3
+          maxLength: 20
+        firstName:
+          type: string
+          description: Employee first name
+          example: "John"
+          minLength: 2
+          maxLength: 50
+        lastName:
+          type: string
+          description: Employee last name
+          example: "Doe"
+          minLength: 2
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          description: Employee email address
+          example: "john.doe@company.com"
+        phoneNumber:
+          type: string
+          description: Employee phone number
+          example: "+1234567890"
+          minLength: 10
+          maxLength: 15
+        hireDate:
+          type: string
+          format: date
+          description: Employee hire date
+          example: "2024-01-15"
+        jobTitle:
+          type: string
+          description: Employee job title
+          example: "Software Engineer"
+          minLength: 2
+          maxLength: 100
+        salary:
+          type: number
+          format: decimal
+          description: Employee salary
+          example: 75000.00
+          minimum: 0
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, TERMINATED]
+          description: Employee status
+          example: "ACTIVE"
+          default: "ACTIVE"
+        departmentId:
+          type: integer
+          format: int64
+          description: Department ID where employee belongs
+          example: 1
+        managerId:
+          type: integer
+          format: int64
+          description: Manager ID (optional)
+          example: 5
+          nullable: true
+        notes:
+          type: string
+          description: Additional notes about the employee
+          example: "Experienced developer with expertise in Java and Spring"
+          maxLength: 1000
+      required:
+        - firstName
+        - lastName
+        - email
+        - hireDate
+        - jobTitle
+        - salary
+        - departmentId
+
+    EmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Employee unique identifier
+          example: 1
+        employeeNumber:
+          type: string
+          description: Employee number
+          example: "EMP202410001"
+        firstName:
+          type: string
+          description: Employee first name
+          example: "John"
+        lastName:
+          type: string
+          description: Employee last name
+          example: "Doe"
+        fullName:
+          type: string
+          description: Employee full name
+          example: "John Doe"
+        email:
+          type: string
+          description: Employee email
+          example: "john.doe@company.com"
+        phoneNumber:
+          type: string
+          description: Employee phone number
+          example: "+1234567890"
+        hireDate:
+          type: string
+          format: date
+          description: Employee hire date
+          example: "2024-01-15"
+        jobTitle:
+          type: string
+          description: Employee job title
+          example: "Software Engineer"
+        salary:
+          type: number
+          format: decimal
+          description: Employee salary
+          example: 75000.00
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, TERMINATED]
+          description: Employee status
+          example: "ACTIVE"
+        department:
+          $ref: '#/components/schemas/DepartmentSummary'
+        managerId:
+          type: integer
+          format: int64
+          description: Manager ID
+          example: 5
+          nullable: true
+        notes:
+          type: string
+          description: Additional notes
+          example: "Experienced developer"
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00"
+
+    # Department Schemas
+    DepartmentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Department name
+          example: "Engineering"
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+          description: Department description
+          example: "Software development and engineering operations"
+          maxLength: 500
+        code:
+          type: string
+          description: Department code
+          example: "ENG"
+          minLength: 2
+          maxLength: 10
+      required:
+        - name
+        - code
+
+    DepartmentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Department unique identifier
+          example: 1
+        name:
+          type: string
+          description: Department name
+          example: "Engineering"
+        description:
+          type: string
+          description: Department description
+          example: "Software development and engineering operations"
+        code:
+          type: string
+          description: Department code
+          example: "ENG"
+        employeeCount:
+          type: integer
+          description: Number of employees in department
+          example: 25
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-15T14:20:00"
+
+    DepartmentSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Department ID
+          example: 1
+        name:
+          type: string
+          description: Department name
+          example: "Engineering"
+        code:
+          type: string
+          description: Department code
+          example: "ENG"
+
+    # Filter Schemas  
+    EmployeeFilterRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          description: Filter by first name
+          example: "John"
+        lastName:
+          type: string
+          description: Filter by last name
+          example: "Doe"
+        email:
+          type: string
+          description: Filter by email
+          example: "john@company.com"
+        departmentId:
+          type: integer
+          format: int64
+          description: Filter by department ID
+          example: 1
+        managerId:
+          type: integer
+          format: int64
+          description: Filter by manager ID
+          example: 5
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, TERMINATED]
+          description: Filter by employee status
+          example: "ACTIVE"
+        hireDateFrom:
+          type: string
+          format: date
+          description: Filter by hire date from
+          example: "2024-01-01"
+        hireDateTo:
+          type: string
+          format: date
+          description: Filter by hire date to
+          example: "2024-12-31"
+        salaryMin:
+          type: number
+          format: decimal
+          description: Minimum salary filter
+          example: 50000.00
+        salaryMax:
+          type: number
+          format: decimal
+          description: Maximum salary filter
+          example: 100000.00
+        page:
+          type: integer
+          description: Page number (0-based)
+          example: 0
+          default: 0
+        size:
+          type: integer
+          description: Page size
+          example: 10
+          default: 10
+        sort:
+          type: string
+          description: Sort criteria (field,direction)
+          example: "firstName,asc"
+          default: "id,asc"
+
+    DepartmentFilterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Filter by department name
+          example: "Engineering"
+        code:
+          type: string
+          description: Filter by department code
+          example: "ENG"
+        page:
+          type: integer
+          description: Page number (0-based)
+          example: 0
+          default: 0
+        size:
+          type: integer
+          description: Page size
+          example: 10
+          default: 10
+        sort:
+          type: string
+          description: Sort criteria (field,direction)
+          example: "name,asc"
+          default: "id,asc"
+
+    PaginatedApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                content:
+                  type: array
+                  items:
+                    type: object
+                  description: Page content items
+                totalElements:
+                  type: integer
+                  format: int64
+                  description: Total number of elements
+                  example: 150
+                totalPages:
+                  type: integer
+                  description: Total number of pages
+                  example: 15
+                currentPage:
+                  type: integer
+                  description: Current page number (0-based)
+                  example: 0
+                pageSize:
+                  type: integer
+                  description: Number of items per page
+                  example: 10
+                first:
+                  type: boolean
+                  description: Is this the first page
+                  example: true
+                last:
+                  type: boolean
+                  description: Is this the last page
+                  example: false
+
+paths:
+  # Authentication Endpoints
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Authentication
+      description: |
+        Authenticate user credentials and generate JWT access token for API authorization.
+        
+        **Test Credentials:**
+        - Username: `admin`
+        - Password: `admin123`
+      operationId: login
+      requestBody:
+        description: User login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              standard_login:
+                summary: Standard Admin Login
+                value:
+                  username: "admin"
+                  password: "admin123"
+      responses:
+        '200':
+          description: Authentication successful - JWT token generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Authentication failed - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request - Invalid input format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: User Registration
+      description: Register a new user account with username, email, password, and role assignment
+      operationId: register
+      security: []
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              new_user:
+                summary: New User Registration
+                value:
+                  username: "john.doe"
+                  email: "john.doe@company.com"
+                  password: "SecurePass123!"
+                  firstName: "John"
+                  lastName: "Doe"
+                  role: "USER"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Conflict - Username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request - Invalid input or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get User Profile
+      description: Retrieve authenticated user's profile information including username, authorities, and authentication status
+      operationId: getUserProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                user_profile:
+                  summary: User Profile Information
+                  value:
+                    success: true
+                    message: "Profile retrieved successfully"
+                    data:
+                      username: "john.doe"
+                      authorities: ["ROLE_USER"]
+                      authenticated: true
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/auth/health:
+    get:
+      tags:
+        - Authentication
+      summary: Service Health Check
+      description: Check the health and availability status of the authentication service
+      operationId: authHealth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Service is healthy and operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                health_status:
+                  summary: Auth Service Health
+                  value:
+                    success: true
+                    message: "Auth service is healthy"
+                    data:
+                      status: "UP"
+                      service: "auth-service"
+                      timestamp: "2025-10-29T12:00:00"
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/auth/public/test:
+    get:
+      tags:
+        - Authentication
+      summary: Public Test Endpoint
+      description: Test endpoint that doesn't require authentication - useful for health checks and connectivity testing
+      operationId: authPublicTest
+      security: []
+      responses:
+        '200':
+          description: Test endpoint successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                public_test:
+                  summary: Public Test Response
+                  value:
+                    success: true
+                    message: "Public endpoint test successful"
+                    data:
+                      access: "No authentication required"
+                      message: "Public test endpoint working"
+                      timestamp: "2025-10-29T12:00:00"
+
+  # Employee Management Endpoints
+  /api/employees:
+    post:
+      tags:
+        - Employee Management
+      summary: Create New Employee
+      description: |
+        Create a new employee record. Only ADMIN users can create employees.
+        Employee number is auto-generated if not provided.
+      operationId: createEmployee
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Employee information for creation
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+            examples:
+              new_employee:
+                summary: Complete Employee Creation
+                value:
+                  employeeNumber: "EMP001"
+                  firstName: "John"
+                  lastName: "Doe"
+                  email: "john.doe@company.com"
+                  phoneNumber: "+1234567890"
+                  hireDate: "2024-01-15"
+                  jobTitle: "Software Engineer"
+                  salary: 75000.00
+                  status: "ACTIVE"
+                  departmentId: 1
+                  managerId: 5
+                  notes: "Experienced developer with expertise in Java and Spring"
+      responses:
+        '201':
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EmployeeResponse'
+        '400':
+          description: Bad request - Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/employees/{id}:
+    get:
+      tags:
+        - Employee Management
+      summary: Get Employee by ID (Admin Only)
+      description: Retrieve a specific employee by ID. Only accessible by ADMIN users.
+      operationId: getEmployeeById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Employee ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Employee retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EmployeeResponse'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Employee Management
+      summary: Update Employee
+      description: Update an existing employee record. Only ADMIN users can update employees.
+      operationId: updateEmployee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Employee ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        description: Updated employee information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+      responses:
+        '200':
+          description: Employee updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EmployeeResponse'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Employee Management
+      summary: Delete Employee
+      description: Delete an employee record. Only ADMIN users can delete employees.
+      operationId: deleteEmployee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Employee ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '204':
+          description: Employee deleted successfully
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/employees/all:
+    get:
+      tags:
+        - Employee Management
+      summary: Get All Employees with Filtering
+      description: |
+        Retrieve paginated list of employees with advanced filtering capabilities.
+        Only accessible by ADMIN users.
+        
+        **Filter Options:**
+        - Name, email, department, manager
+        - Hire date range, salary range
+        - Employee status
+        - Pagination and sorting
+      operationId: getAllEmployeesForAdmin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: firstName
+          in: query
+          description: Filter by first name
+          schema:
+            type: string
+            example: "John"
+        - name: lastName
+          in: query
+          description: Filter by last name
+          schema:
+            type: string
+            example: "Doe"
+        - name: email
+          in: query
+          description: Filter by email
+          schema:
+            type: string
+            example: "john@company.com"
+        - name: departmentId
+          in: query
+          description: Filter by department ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: managerId
+          in: query
+          description: Filter by manager ID
+          schema:
+            type: integer
+            format: int64
+            example: 5
+        - name: status
+          in: query
+          description: Filter by employee status
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, TERMINATED]
+            example: "ACTIVE"
+        - name: hireDateFrom
+          in: query
+          description: Filter by hire date from
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: hireDateTo
+          in: query
+          description: Filter by hire date to
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: salaryMin
+          in: query
+          description: Minimum salary filter
+          schema:
+            type: number
+            format: decimal
+            example: 50000.00
+        - name: salaryMax
+          in: query
+          description: Maximum salary filter
+          schema:
+            type: number
+            format: decimal
+            example: 100000.00
+        - name: page
+          in: query
+          description: Page number (0-based)
+          schema:
+            type: integer
+            default: 0
+            example: 0
+        - name: size
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: sort
+          in: query
+          description: Sort criteria (field,direction)
+          schema:
+            type: string
+            default: "id,asc"
+            example: "firstName,asc"
+      responses:
+        '200':
+          description: Employees retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          content:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/EmployeeResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/employees/department:
+    get:
+      tags:
+        - Employee Management
+      summary: Get Department Employees (Manager Only)
+      description: |
+        Retrieve employees belonging to the manager's department.
+        Only accessible by MANAGER role users.
+      operationId: getDepartmentEmployees
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: firstName
+          in: query
+          description: Filter by first name
+          schema:
+            type: string
+            example: "John"
+        - name: lastName
+          in: query
+          description: Filter by last name
+          schema:
+            type: string
+            example: "Doe"
+        - name: page
+          in: query
+          description: Page number (0-based)
+          schema:
+            type: integer
+            default: 0
+            example: 0
+        - name: size
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Department employees retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - MANAGER role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/employees/view:
+    get:
+      tags:
+        - Employee Management
+      summary: Get My Employee Profile (User Only)
+      description: |
+        Retrieve authenticated user's own employee profile information.
+        Only accessible by USER role.
+      operationId: getMyEmployeeProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Employee profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EmployeeResponse'
+        '403':
+          description: Forbidden - USER role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/employees/health:
+    get:
+      tags:
+        - Employee Management
+      summary: Employee Service Health Check
+      description: Check the health and availability status of the employee service
+      operationId: employeeHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy and operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                health_status:
+                  summary: Employee Service Health
+                  value:
+                    success: true
+                    message: "Service is healthy"
+                    data:
+                      status: "UP"
+                      service: "employee-service"
+                      module: "employees"
+
+  /api/employees/public/test:
+    get:
+      tags:
+        - Employee Management
+      summary: Public Test Endpoint
+      description: Test endpoint that doesn't require authentication - used for gateway testing
+      operationId: employeePublicTest
+      security: []
+      responses:
+        '200':
+          description: Public endpoint test successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                public_test:
+                  summary: Public Test Response
+                  value:
+                    success: true
+                    message: "Public endpoint test successful"
+                    data:
+                      message: "Public test endpoint working"
+                      timestamp: "2025-10-29T12:00:00"
+                      access: "No authentication required"
+
+  /api/employees/admin/test:
+    get:
+      tags:
+        - Employee Management
+      summary: Admin Test Endpoint
+      description: Test endpoint for ADMIN users only
+      operationId: employeeAdminTest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Admin endpoint test successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                admin_test:
+                  summary: Admin Test Response
+                  value:
+                    success: true
+                    message: "Admin endpoint test successful"
+                    data:
+                      message: "Admin test endpoint working"
+                      timestamp: "2025-10-29T12:00:00"
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # Department Management Endpoints
+  /api/departments:
+    post:
+      tags:
+        - Department Management
+      summary: Create New Department
+      description: |
+        Create a new department with organizational details.
+        Requires ADMIN role for organizational structure management.
+      operationId: createDepartment
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Department information for creation
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+            examples:
+              new_department:
+                summary: New Department Creation
+                value:
+                  name: "Engineering"
+                  description: "Software development and engineering operations"
+                  code: "ENG"
+      responses:
+        '201':
+          description: Department created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DepartmentResponse'
+        '400':
+          description: Bad request - Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/departments/all:
+    get:
+      tags:
+        - Department Management
+      summary: Get Departments with Advanced Filtering
+      description: |
+        Retrieve paginated list of departments with advanced filtering and search.
+        Requires ADMIN role for organizational overview.
+      operationId: getDepartments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          description: Filter by department name
+          schema:
+            type: string
+            example: "Engineering"
+        - name: code
+          in: query
+          description: Filter by department code
+          schema:
+            type: string
+            example: "ENG"
+        - name: page
+          in: query
+          description: Page number (0-based)
+          schema:
+            type: integer
+            default: 0
+            example: 0
+        - name: size
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Departments retrieved successfully with filtering applied
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          content:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/DepartmentResponse'
+        '400':
+          description: Bad request - Invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/departments/{id}:
+    get:
+      tags:
+        - Department Management
+      summary: Get Department by ID
+      description: |
+        Retrieve detailed information for a specific department.
+      operationId: getDepartmentById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Department unique identifier
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Department details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DepartmentResponse'
+        '404':
+          description: Department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Department Management
+      summary: Update Department
+      description: Update an existing department record. Only ADMIN users can update departments.
+      operationId: updateDepartment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Department ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        description: Updated department information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentRequest'
+      responses:
+        '200':
+          description: Department updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DepartmentResponse'
+        '404':
+          description: Department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Department Management
+      summary: Delete Department
+      description: |
+        Delete a department record. Only ADMIN users can delete departments.
+        Department must not have any associated employees.
+      operationId: deleteDepartment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Department ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '204':
+          description: Department deleted successfully
+        '404':
+          description: Department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request - Cannot delete department with active employees
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                active_employees:
+                  summary: Department has active employees
+                  value:
+                    success: false
+                    message: "Cannot delete department with active employees. Please reassign employees first."
+                    data: null
+        '403':
+          description: Forbidden - ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/departments/health:
+    get:
+      tags:
+        - Department Management
+      summary: Department Service Health Check
+      description: Check the health and availability status of the department management service
+      operationId: departmentHealth
+      security: []
+      responses:
+        '200':
+          description: Department service is healthy and operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                health_status:
+                  summary: Department Service Health
+                  value:
+                    success: true
+                    message: "Service is healthy"
+                    data:
+                      status: "UP"
+                      service: "employee-service"
+                      module: "departments"
+                      timestamp: "2025-10-29T12:00:00"
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization management
+  - name: Employee Management
+    description: Complete employee lifecycle management with role-based access control
+  - name: Department Management
+    description: Organizational structure and department administration
+
+externalDocs:
+  description: Employee Management System GitHub Repository
+  url: https://github.com/company/employee-management-system

@@ -26,40 +26,49 @@ public class EmployeeController {
     private EmployeeService employeeService;
 
     @PostMapping
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(@Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse employee = employeeService.createEmployee(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(employee));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Employee created successfully", employee));
     }
 
     @PutMapping("/{id}")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<EmployeeResponse>> updateEmployee(
-            @PathVariable Long id, 
+            @PathVariable Long id,
             @Valid @RequestBody EmployeeRequest request) {
-        
+
         EmployeeResponse employee = employeeService.updateEmployee(id, request);
-        return ResponseEntity.ok(ApiResponse.updated(employee));
+        return ResponseEntity.ok(ApiResponse.success("Employee updated successfully", employee));
     }
 
     @DeleteMapping("/{id}")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<Void>> deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Employee deleted successfully", null));
+    }
+
+    @GetMapping
+    @RoleRequired({ "ADMIN" })
+    public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getEmployees(
+            EmployeeFilterRequest filter) {
+        Page<EmployeeResponse> employees = employeeService.getEmployeesWithFilters(filter);
+        return ResponseEntity.ok(PaginatedApiResponse.of(employees, "Employees retrieved successfully"));
     }
 
     // Admin endpoint - full filtering capabilities
     @GetMapping("/all")
-    @RoleRequired({"ADMIN"})
-    public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getAllEmployeesForAdmin(EmployeeFilterRequest filter) {
+    @RoleRequired({ "ADMIN" })
+    public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getAllEmployeesForAdmin(
+            EmployeeFilterRequest filter) {
         Page<EmployeeResponse> employees = employeeService.getEmployeesWithFilters(filter);
         return ResponseEntity.ok(PaginatedApiResponse.of(employees, "All employees retrieved successfully"));
     }
 
     // Admin endpoint - view any employee by ID
     @GetMapping("/{id}")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeByIdForAdmin(@PathVariable Long id) {
         EmployeeResponse employee = employeeService.getEmployeeById(id);
         return ResponseEntity.ok(ApiResponse.success("Employee details retrieved successfully", employee));
@@ -67,39 +76,30 @@ public class EmployeeController {
 
     // Manager endpoint - view employees in their department
     @GetMapping("/department")
-    @RoleRequired({"MANAGER"})
+    @RoleRequired({ "MANAGER" })
     public ResponseEntity<PaginatedApiResponse<EmployeeResponse>> getEmployeesInDepartment(
             EmployeeFilterRequest filter,
-            @RequestHeader(value = "X-User-Department-Id") String userDepartmentIdHeader) {
-        
-        Long userDepartmentId;
-        try {
-            userDepartmentId = Long.parseLong(userDepartmentIdHeader);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("X-User-Department-Id header must be a valid number");
+            @RequestHeader(value = "X-Employee-Code") String employeeCode) {
+
+        if (employeeCode == null || employeeCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Employee record has not been created yet");
         }
-        
-        // Override department filter to ensure manager only sees their department
-        filter.setDepartmentId(userDepartmentId);
-        
-        Page<EmployeeResponse> employees = employeeService.getEmployeesWithFilters(filter);
+
+        Page<EmployeeResponse> employees = employeeService.getEmployeesInManagerDepartment(filter, employeeCode);
         return ResponseEntity.ok(PaginatedApiResponse.of(employees, "Department employees retrieved successfully"));
     }
 
     // Employee endpoint - view their own details
     @GetMapping("/view")
-    @RoleRequired({"USER"})
+    @RoleRequired({ "USER" })
     public ResponseEntity<ApiResponse<EmployeeResponse>> getMyDetails(
-            @RequestHeader(value = "X-User-Id") String userIdHeader) {
-        
-        Long userId;
-        try {
-            userId = Long.parseLong(userIdHeader);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("X-User-Id header must be a valid number");
+            @RequestHeader(value = "X-Employee-Code") String employeeCode) {
+
+        if (employeeCode == null || employeeCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Employee record has not been created yet");
         }
-        
-        EmployeeResponse employee = employeeService.getEmployeeById(userId);
+
+        EmployeeResponse employee = employeeService.getEmployeeByEmployeeCode(employeeCode);
         return ResponseEntity.ok(ApiResponse.success("Employee profile retrieved successfully", employee));
     }
 
@@ -124,7 +124,7 @@ public class EmployeeController {
 
     // Simple test endpoint
     @GetMapping("/admin/test")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<Map<String, String>>> test() {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Admin test endpoint working");

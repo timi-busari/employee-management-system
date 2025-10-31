@@ -1,16 +1,57 @@
-# API Gateway specific configuration
+# API Gateway Configuration
 server:
   port: 8080
 
 spring:
+  application:
+    name: api-gateway
   cloud:
     gateway:
-      routes:
-        - id: auth-service
-          uri: lb://auth-service
-          predicates:
-            - Path=/auth/**
-        - id: employee-service
-          uri: lb://employee-service
-          predicates:
-            - Path=/api/**
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=0
+            - id: employee-service
+              uri: lb://employee-service
+              predicates:
+                - Path=/api/employees/**
+              filters:
+                - StripPrefix=0
+            - id: department-service
+              uri: lb://employee-service
+              predicates:
+                - Path=/api/departments/**
+              filters:
+                - StripPrefix=0
+          globalcors:
+            cors-configurations:
+              "[/**]":
+                allowedOrigins: "*"
+                allowedMethods: 
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: false
+
+# JWT Configuration (shared with auth service)
+jwt:
+  secret: ${JWT_SECRET:bXlTZWNyZXRLZXkxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVoxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health,info,routes
+  endpoint:
+    gateway:
+      access: restricted

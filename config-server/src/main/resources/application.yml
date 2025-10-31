@@ -4,8 +4,32 @@ server:
 spring:
   application:
     name: config-server
+  
   cloud:
     config:
       server:
         git:
-          uri: file:///Users/macbook/Documents/playground/employee-mgt/employee-management-system/shared-config-repo
+          uri: file:///app/shared-config-repo
+          default-label: main
+          clone-on-start: true
+        health:
+          repositories:
+            config:
+              name: config
+              profiles: default
+              label: main
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+# Logging Configuration
+logging:
+  level:
+    '[org.springframework.cloud.config]': DEBUG
+    '[org.springframework.web]': DEBUG

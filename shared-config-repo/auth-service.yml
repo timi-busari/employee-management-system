@@ -1,0 +1,60 @@
+# Auth Service Configuration
+server:
+  port: 8082
+
+spring:
+  application:
+    name: auth-service
+  
+  # Database configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/auth_service_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: auth-service-sync
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        '[spring.json.trusted.packages]': 'com.employeemgt.auth.event,com.employeemgt.employee.event'
+        '[spring.deserializer.key.delegate.class]': org.apache.kafka.common.serialization.StringDeserializer
+        '[spring.deserializer.value.delegate.class]': org.springframework.kafka.support.serializer.JsonDeserializer
+        '[spring.json.value.default.type]': com.employeemgt.auth.event.EmployeeCodeGeneratedEvent
+        '[spring.json.type.mapping]': 'employeeCodeEvent:com.employeemgt.auth.event.EmployeeCodeGeneratedEvent'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:bXlTZWNyZXRLZXkxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVoxMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+# Database Initializer Configuration  
+database:
+  initializer:
+    postgres-url: ${DATABASE_POSTGRES_URL:jdbc:postgresql://localhost:5432/postgres}
+
+# Kafka Topic configuration      
+kafka:
+  topic:
+    user-events: user-events
+    employee-code-events: employee-code-events

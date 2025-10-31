@@ -40,7 +40,7 @@ public class FlyWayConfig {
         // Extract connection info for postgres database
         String postgresUrl = url.replace("/auth_service_db", "/postgres");
         
-        try (Connection connection = DriverManager.getConnection(url, username, password);
+        try (Connection connection = DriverManager.getConnection(postgresUrl, username, password);
              Statement statement = connection.createStatement()) {
             
             statement.executeUpdate("CREATE DATABASE auth_service_db");

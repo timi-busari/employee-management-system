@@ -1,41 +1,41 @@
-package com.employeemgt.employee.dto;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
+package com.employeemgt.auth.event;
 
 import java.time.LocalDateTime;
 
-public class EmployeeEvent {
+public class EmployeeCodeGeneratedEvent {
+    
     private String eventId;
-    private String eventType; // CREATED, UPDATED, DELETED
+    private String eventType = "EMPLOYEE_CODE_GENERATED";
+    private LocalDateTime timestamp;
+    
+    // Employee details
     private Long employeeId;
+    private String employeeCode;
     private String firstName;
     private String lastName;
     private String email;
-    private String departmentName;
+    private String role;
     
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime timestamp;
+    // Auth service linking
+    private Long userId; // If available during creation
     
-    private String userId; // Who performed the action
-
-    public EmployeeEvent() {
+    public EmployeeCodeGeneratedEvent() {
         this.timestamp = LocalDateTime.now();
+        this.eventId = java.util.UUID.randomUUID().toString();
     }
-
-    public EmployeeEvent(String eventType, Long employeeId, String firstName, 
-                        String lastName, String email, String departmentName, String userId) {
+    
+    public EmployeeCodeGeneratedEvent(Long employeeId, String employeeCode, String firstName, 
+                                    String lastName, String email, String role) {
         this();
-        this.eventType = eventType;
         this.employeeId = employeeId;
+        this.employeeCode = employeeCode;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.departmentName = departmentName;
-        this.userId = userId;
-        this.eventId = java.util.UUID.randomUUID().toString();
+        this.role = role;
     }
 
-    // Getters and Setters
+    // Getters and setters
     public String getEventId() {
         return eventId;
     }
@@ -52,12 +52,28 @@ public class EmployeeEvent {
         this.eventType = eventType;
     }
 
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public Long getEmployeeId() {
         return employeeId;
     }
 
     public void setEmployeeId(Long employeeId) {
         this.employeeId = employeeId;
+    }
+
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
 
     public String getFirstName() {
@@ -84,42 +100,31 @@ public class EmployeeEvent {
         this.email = email;
     }
 
-    public String getDepartmentName() {
-        return departmentName;
+    public String getRole() {
+        return role;
     }
 
-    public void setDepartmentName(String departmentName) {
-        this.departmentName = departmentName;
+    public void setRole(String role) {
+        this.role = role;
     }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public String getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
     @Override
     public String toString() {
-        return "EmployeeEvent{" +
+        return "EmployeeCodeGeneratedEvent{" +
                 "eventId='" + eventId + '\'' +
-                ", eventType='" + eventType + '\'' +
-                ", employeeId=" + employeeId +
+                ", employeeCode='" + employeeCode + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
-                ", departmentName='" + departmentName + '\'' +
-                ", timestamp=" + timestamp +
-                ", userId='" + userId + '\'' +
+                ", role='" + role + '\'' +
                 '}';
     }
 }
