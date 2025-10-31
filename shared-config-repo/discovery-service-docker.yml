@@ -1,0 +1,27 @@
+# Discovery Service Docker Configuration
+server:
+  port: 8761
+
+spring:
+  application:
+    name: discovery-service
+
+# Eureka Configuration for Docker
+eureka:
+  instance:
+    hostname: discovery-service
+    prefer-ip-address: true
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 10000
+
+# Logging Configuration
+logging:
+  level:
+    com.netflix.eureka: DEBUG
+    com.netflix.discovery: DEBUG
