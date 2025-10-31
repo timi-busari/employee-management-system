@@ -26,7 +26,7 @@ public class DepartmentController {
     private DepartmentService departmentService;
 
     @GetMapping("/all")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<PaginatedApiResponse<DepartmentResponse>> getDepartments(
             @Valid DepartmentFilterRequest filter) {
         
@@ -43,22 +43,23 @@ public class DepartmentController {
     }
 
     @PostMapping
-    @RoleRequired({"ADMIN"})
-    public ResponseEntity<ApiResponse<DepartmentResponse>> createDepartment(@Valid @RequestBody DepartmentRequest request) {
+    @RoleRequired({ "ADMIN" })
+    public ResponseEntity<ApiResponse<DepartmentResponse>> createDepartment(
+            @Valid @RequestBody DepartmentRequest request) {
         DepartmentResponse department = departmentService.createDepartment(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(department));
     }
 
     @PutMapping("/{id}")
-    @RoleRequired({"ADMIN"})
-    public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(@PathVariable Long id, 
-                                                              @Valid @RequestBody DepartmentRequest request) {
+    @RoleRequired({ "ADMIN" })
+    public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(@PathVariable Long id,
+            @Valid @RequestBody DepartmentRequest request) {
         DepartmentResponse department = departmentService.updateDepartment(id, request);
         return ResponseEntity.ok(ApiResponse.updated(department));
     }
 
     @DeleteMapping("/{id}")
-    @RoleRequired({"ADMIN"})
+    @RoleRequired({ "ADMIN" })
     public ResponseEntity<ApiResponse<Void>> deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);
         return ResponseEntity.noContent().build();

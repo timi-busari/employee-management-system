@@ -1,0 +1,54 @@
+# Employee Service Configuration
+server:
+  port: 8083
+
+spring:
+  application:
+    name: employee-service
+  
+  # Database configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/employee_service_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: employee-service-sync
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        '[spring.json.trusted.packages]': 'com.employeemgt.employee.event,com.employeemgt.auth.event'
+        '[spring.deserializer.key.delegate.class]': org.apache.kafka.common.serialization.StringDeserializer
+        '[spring.deserializer.value.delegate.class]': org.springframework.kafka.support.serializer.JsonDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Database Initializer Configuration
+database:
+  initializer:
+    postgres-url: ${DATABASE_POSTGRES_URL:jdbc:postgresql://localhost:5432/postgres}
+
+# Kafka Topic configuration
+kafka:
+  topic:
+    employee-events: employee-events
+    department-events: department-events
+    audit-events: audit-events

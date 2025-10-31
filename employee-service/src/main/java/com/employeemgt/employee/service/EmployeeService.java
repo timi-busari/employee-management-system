@@ -33,13 +33,24 @@ public class EmployeeService {
     private DepartmentRepository departmentRepository;
 
     @Autowired
-    private EmployeeEventPublisher eventPublisher;
+    private EmployeeEventProducer employeeEventProducer;
+
+    @Autowired
+    private EmployeeCodeGenerator codeGenerator;
 
     public EmployeeResponse createEmployee(EmployeeRequest request) {
-        // Check for duplicate employee number
-        if (employeeRepository.existsByEmployeeNumber(request.getEmployeeNumber())) {
-            throw new DuplicateResourceException(
-                    "Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
+        // Determine employee code: use provided or auto-generate
+        String employeeCode;
+        if (request.getEmployeeCode() != null && !request.getEmployeeCode().trim().isEmpty()) {
+            // Check for duplicate employee code if provided
+            if (employeeRepository.existsByEmployeeCode(request.getEmployeeCode())) {
+                throw new DuplicateResourceException(
+                        "Employee with employee code '" + request.getEmployeeCode() + "' already exists");
+            }
+            employeeCode = request.getEmployeeCode();
+        } else {
+            // Auto-generate unique employee code
+            employeeCode = codeGenerator.generateEmployeeCode("EMPLOYEE");
         }
 
         // Check for duplicate email
@@ -60,7 +71,7 @@ public class EmployeeService {
         }
 
         Employee employee = new Employee(
-                request.getEmployeeNumber(),
+                employeeCode, // Use generated code instead of client-provided
                 request.getFirstName(),
                 request.getLastName(),
                 request.getEmail(),
@@ -76,15 +87,8 @@ public class EmployeeService {
 
         Employee savedEmployee = employeeRepository.save(employee);
 
-        // Publish employee created event
-        eventPublisher.publishEmployeeCreated(
-                savedEmployee.getId(),
-                savedEmployee.getFirstName(),
-                savedEmployee.getLastName(),
-                savedEmployee.getEmail(),
-                savedEmployee.getDepartment().getName(),
-                "system" // TODO: Get actual user from security context
-        );
+        // Send employee created event to auth service
+        employeeEventProducer.sendEmployeeCreatedEvent(savedEmployee);
 
         return convertToResponse(savedEmployee);
     }
@@ -93,11 +97,11 @@ public class EmployeeService {
         Employee existingEmployee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
-        // Check for duplicate employee number (excluding current employee)
-        if (employeeRepository.existsByEmployeeNumber(request.getEmployeeNumber()) &&
-                !existingEmployee.getEmployeeNumber().equals(request.getEmployeeNumber())) {
+        // Check for duplicate employee code (excluding current employee)
+        if (employeeRepository.existsByEmployeeCode(request.getEmployeeCode()) &&
+                !existingEmployee.getEmployeeCode().equals(request.getEmployeeCode())) {
             throw new DuplicateResourceException(
-                    "Employee with employee number '" + request.getEmployeeNumber() + "' already exists");
+                    "Employee with employee code '" + request.getEmployeeCode() + "' already exists");
         }
 
         // Check for duplicate email (excluding current employee)
@@ -119,7 +123,7 @@ public class EmployeeService {
         }
 
         // Update employee fields
-        existingEmployee.setEmployeeNumber(request.getEmployeeNumber());
+        existingEmployee.setEmployeeCode(request.getEmployeeCode());
         existingEmployee.setFirstName(request.getFirstName());
         existingEmployee.setLastName(request.getLastName());
         existingEmployee.setEmail(request.getEmail());
@@ -134,15 +138,8 @@ public class EmployeeService {
 
         Employee updatedEmployee = employeeRepository.save(existingEmployee);
 
-        // Publish employee updated event
-        eventPublisher.publishEmployeeUpdated(
-                updatedEmployee.getId(),
-                updatedEmployee.getFirstName(),
-                updatedEmployee.getLastName(),
-                updatedEmployee.getEmail(),
-                updatedEmployee.getDepartment().getName(),
-                "system" // TODO: Get actual user from security context
-        );
+        // Send employee updated event to auth service
+        employeeEventProducer.sendEmployeeUpdatedEvent(updatedEmployee);
 
         return convertToResponse(updatedEmployee);
     }
@@ -151,21 +148,15 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
-        // Publish employee deleted event before deletion
-        eventPublisher.publishEmployeeDeleted(
-                employee.getId(),
-                employee.getFirstName(),
-                employee.getLastName(),
-                employee.getEmail(),
-                employee.getDepartment() != null ? employee.getDepartment().getName() : "Unknown",
-                "system" // TODO: Get actual user from security context
-        );
+        // Send employee deleted event before deletion
+        employeeEventProducer.sendEmployeeDeletedEvent(employee);
 
         employeeRepository.delete(employee);
     }
 
     /**
-     * Get employees with filters - role-based access control handled at controller level
+     * Get employees with filters - role-based access control handled at controller
+     * level
      * 
      * @param filterRequest The filter criteria
      * @return Page of employees based on filters
@@ -178,6 +169,46 @@ public class EmployeeService {
 
         Page<Employee> employeePage = employeeRepository.findAll(spec, pageable);
         return employeePage.map(this::convertToResponse);
+    }
+
+    /**
+     * Get employees in manager's department using Employee Code
+     * This method demonstrates the employee code linking pattern
+     * 
+     * @param filterRequest The filter criteria
+     * @param employeeCode  The manager's employee code (from auth service)
+     * @return Page of employees in the manager's department
+     */
+    public Page<EmployeeResponse> getEmployeesInManagerDepartment(EmployeeFilterRequest filterRequest,
+            String employeeCode) {
+        // Step 1: Find the manager employee record using employee code
+        Employee manager = employeeRepository.findByEmployeeCode(employeeCode)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Manager employee record not found for employee code: " + employeeCode +
+                                ". Ensure employee code sync is complete."));
+
+        // Step 2: Get the manager's department ID
+        Long managerDepartmentId = manager.getDepartment().getId();
+
+        // Step 3: Override the department filter to ensure manager only sees their
+        // department
+        filterRequest.setDepartmentId(managerDepartmentId);
+
+        // Step 4: Use the existing getEmployeesWithFilters method
+        return getEmployeesWithFilters(filterRequest);
+    }
+
+    /**
+     * Get employee by ID (access control handled at controller level)
+     * 
+     * @param id The employee ID
+     * @return Employee details
+     */
+    public EmployeeResponse getEmployeeByEmployeeCode(String employeeCode) {
+        Employee employee = employeeRepository.findByEmployeeCode(employeeCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with employee code: " + employeeCode));
+
+        return convertToResponse(employee);
     }
 
     /**
@@ -246,7 +277,7 @@ public class EmployeeService {
     private EmployeeResponse convertToResponse(Employee employee) {
         EmployeeResponse response = new EmployeeResponse();
         response.setId(employee.getId());
-        response.setEmployeeNumber(employee.getEmployeeNumber());
+        response.setEmployeeCode(employee.getEmployeeCode());
         response.setFirstName(employee.getFirstName());
         response.setLastName(employee.getLastName());
         response.setFullName(employee.getFullName());

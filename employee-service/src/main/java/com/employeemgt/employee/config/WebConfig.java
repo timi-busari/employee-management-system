@@ -17,16 +17,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(roleGuard)
                 .addPathPatterns("/api/employees/**", "/api/departments/**")
                 .excludePathPatterns(
+                    // Health endpoints
                     "/api/employees/health", 
                     "/api/departments/health",
-                    "/api/employees/public/**",
-                    // Swagger/OpenAPI endpoints
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/api-docs/**",
-                    "/v3/api-docs/**",
-                    "/swagger-resources/**",
-                    "/webjars/**"
+                    "/api/employees/public/**"
                 );
     }
 }

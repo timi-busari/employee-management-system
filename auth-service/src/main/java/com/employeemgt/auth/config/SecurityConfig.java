@@ -47,10 +47,13 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/health", "/auth/login", "/auth/register", "/auth/health").permitAll()
+                // Public authentication endpoints
+                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/health", "/api/auth/public/**", "/auth/login", "/auth/register", "/auth/health").permitAll()
+                
+                // Actuator health endpoints
                 .requestMatchers("/actuator/**").permitAll()
-                // Swagger/OpenAPI endpoints
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
