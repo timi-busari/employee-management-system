@@ -75,7 +75,7 @@ class EmployeeControllerTest {
         @Test
         void createEmployee_WithValidData_ShouldCreateAndReturn201() throws Exception {
                 // Act & Assert
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated())
@@ -96,7 +96,7 @@ class EmployeeControllerTest {
         @Test
         void createEmployee_WithDuplicateEmail_ShouldReturn409() throws Exception {
                 // Create first employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -104,7 +104,7 @@ class EmployeeControllerTest {
                 // Try to create another employee with same email
                 employeeRequest.setEmployeeCode("EMP002");
                 // Then
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isConflict())
@@ -117,14 +117,14 @@ class EmployeeControllerTest {
         @Test
         void createEmployee_WithDuplicateEmployeeCode_ShouldReturn409() throws Exception {
                 // Create first employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Try to create another employee with same employee code but different email
                 employeeRequest.setEmail("jane.doe@company.com");
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isConflict())
@@ -137,7 +137,7 @@ class EmployeeControllerTest {
                 // Test with empty first name
                 employeeRequest.setFirstName("");
                 
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isBadRequest());
@@ -148,7 +148,7 @@ class EmployeeControllerTest {
                 // Test with invalid email format
                 employeeRequest.setEmail("invalid-email");
                 
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isBadRequest());
@@ -157,7 +157,7 @@ class EmployeeControllerTest {
         @Test
         void shouldUpdateEmployeeSuccessfullyWhenValidDataProvided() throws Exception {
                 // Given - Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -171,7 +171,7 @@ class EmployeeControllerTest {
                 employeeRequest.setJobTitle("Senior Software Engineer");
 
                 // Then
-                mockMvc.perform(put("/api/v1/employees/{id}", employeeId)
+                mockMvc.perform(put("/api/employees/{id}", employeeId)
                                 .header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
@@ -191,7 +191,7 @@ class EmployeeControllerTest {
         void updateEmployee_WithNonExistentId_ShouldReturn404() throws Exception {
                 Long nonExistentId = 999L;
 
-                mockMvc.perform(put("/api/v1/employees/{id}", nonExistentId)
+                mockMvc.perform(put("/api/employees/{id}", nonExistentId)
                                 .header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
@@ -203,7 +203,7 @@ class EmployeeControllerTest {
         @Test
         void updateEmployee_WithInvalidData_ShouldReturn400() throws Exception {
                 // Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -214,7 +214,7 @@ class EmployeeControllerTest {
                 // Try to update with invalid data
                 employeeRequest.setFirstName(""); // Invalid - empty first name
 
-                mockMvc.perform(put("/api/v1/employees/{id}", employeeId)
+                mockMvc.perform(put("/api/employees/{id}", employeeId)
                                 .header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
@@ -224,7 +224,7 @@ class EmployeeControllerTest {
         @Test
         void shouldDeleteEmployeeSuccessfullyWhenValidIdProvided() throws Exception {
                 // Given - Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -234,7 +234,7 @@ class EmployeeControllerTest {
                 Long employeeId = employee.getId();
 
                 // When - Delete employee
-                mockMvc.perform(delete("/api/v1/employees/{id}", employeeId)
+                mockMvc.perform(delete("/api/employees/{id}", employeeId)
                                 .header("X-User-Role", "ADMIN"))
                                 .andExpect(status().isOk());
 
@@ -246,7 +246,7 @@ class EmployeeControllerTest {
         void deleteEmployee_WithNonExistentId_ShouldReturn404() throws Exception {
                 Long nonExistentId = 999L;
 
-                mockMvc.perform(delete("/api/v1/employees/{id}", nonExistentId)
+                mockMvc.perform(delete("/api/employees/{id}", nonExistentId)
                                 .header("X-User-Role", "ADMIN"))
                                 .andExpect(status().isNotFound())
                                 .andExpect(jsonPath("$.status").value(404))
@@ -256,7 +256,7 @@ class EmployeeControllerTest {
         @Test
         void shouldReturnEmployeeWhenValidIdProvided() throws Exception {
                 // Given - Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -266,7 +266,7 @@ class EmployeeControllerTest {
                 Long employeeId = employee.getId();
 
                 // When & Then - Get employee by ID
-                mockMvc.perform(get("/api/v1/employees/{id}", employeeId)
+                mockMvc.perform(get("/api/employees/{id}", employeeId)
                                 .header("X-User-Role", "ADMIN"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
@@ -279,7 +279,7 @@ class EmployeeControllerTest {
         void getEmployeeById_WithNonExistentId_ShouldReturn404() throws Exception {
                 Long nonExistentId = 999L;
 
-                mockMvc.perform(get("/api/v1/employees/{id}", nonExistentId)
+                mockMvc.perform(get("/api/employees/{id}", nonExistentId)
                                 .header("X-User-Role", "ADMIN"))
                                 .andExpect(status().isNotFound())
                                 .andExpect(jsonPath("$.status").value(404))
@@ -291,7 +291,7 @@ class EmployeeControllerTest {
                 // Clean up any existing employees
                 employeeRepository.deleteAll();
 
-                mockMvc.perform(get("/api/v1/employees/all")
+                mockMvc.perform(get("/api/employees/all")
                                 .header("X-User-Role", "ADMIN")
                                 .param("page", "0")
                                 .param("perPage", "10"))
@@ -305,7 +305,7 @@ class EmployeeControllerTest {
         @Test
         void getAllEmployees_WithMultipleEmployees_ShouldReturnPagedResults() throws Exception {
                 // Create first employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -314,13 +314,13 @@ class EmployeeControllerTest {
                 employeeRequest.setEmployeeCode("EMP002");
                 employeeRequest.setEmail("jane.doe@company.com");
                 employeeRequest.setFirstName("Jane");
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Get all employees
-                mockMvc.perform(get("/api/v1/employees/all")
+                mockMvc.perform(get("/api/employees/all")
                                 .header("X-User-Role", "ADMIN")
                                 .param("page", "0")
                                 .param("perPage", "10"))
@@ -334,7 +334,7 @@ class EmployeeControllerTest {
         @Test
         void getEmployees_WithFilters_ShouldReturnFilteredResults() throws Exception {
                 // Create first employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
@@ -352,13 +352,13 @@ class EmployeeControllerTest {
                 secondEmployeeRequest.setStatus(EmployeeStatus.INACTIVE);
                 secondEmployeeRequest.setDepartmentId(testDepartment.getId());
 
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(secondEmployeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Filter by status - should return only ACTIVE employees
-                mockMvc.perform(get("/api/v1/employees")
+                mockMvc.perform(get("/api/employees")
                                 .header("X-User-Role", "ADMIN")
                                 .param("status", "ACTIVE")
                                 .param("page", "0")
@@ -373,13 +373,13 @@ class EmployeeControllerTest {
         @Test
         void getEmployees_WithDepartmentFilter_ShouldReturnDepartmentEmployees() throws Exception {
                 // Create employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Filter by department
-                mockMvc.perform(get("/api/v1/employees")
+                mockMvc.perform(get("/api/employees")
                                 .header("X-User-Role", "ADMIN")
                                 .param("departmentId", testDepartment.getId().toString())
                                 .param("page", "0")
@@ -394,13 +394,13 @@ class EmployeeControllerTest {
         @Test
         void getEmployees_WithNameFilter_ShouldReturnMatchingEmployees() throws Exception {
                 // Create employee
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Filter by name
-                mockMvc.perform(get("/api/v1/employees")
+                mockMvc.perform(get("/api/employees")
                                 .header("X-User-Role", "ADMIN")
                                 .param("name", "John")
                                 .param("page", "0")
@@ -415,13 +415,13 @@ class EmployeeControllerTest {
         @Test
         void getEmployees_ShouldReturnPagedEmployees() throws Exception {
                 // Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Get employees with pagination
-                mockMvc.perform(get("/api/v1/employees/all").header("X-User-Role", "ADMIN")
+                mockMvc.perform(get("/api/employees/all").header("X-User-Role", "ADMIN")
                                 .param("page", "0")
                                 .param("perPage", "10"))
                                 .andExpect(status().isOk())
@@ -434,13 +434,13 @@ class EmployeeControllerTest {
         @Test
         void getEmployees_WithFilters_ShouldReturnFilteredEmployees() throws Exception {
                 // Create employee first
-                mockMvc.perform(post("/api/v1/employees").header("X-User-Role", "ADMIN")
+                mockMvc.perform(post("/api/employees").header("X-User-Role", "ADMIN")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(employeeRequest)))
                                 .andExpect(status().isCreated());
 
                 // Get employees with filters
-                mockMvc.perform(get("/api/v1/employees/all").header("X-User-Role", "ADMIN")
+                mockMvc.perform(get("/api/employees/all").header("X-User-Role", "ADMIN")
                                 .param("departmentId", testDepartment.getId().toString())
                                 .param("status", "ACTIVE")
                                 .param("name", "John"))
