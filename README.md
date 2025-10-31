@@ -394,19 +394,6 @@ curl "http://localhost:8080/api/employees/all?page=0&size=5&sort=firstName,asc" 
 
 **Decision:** Implemented microservices pattern with service separation by business domain.
 
-**Rationale:**
-
-- **Scalability**: Each service can be scaled independently
-- **Technology Flexibility**: Different services can use different tech stacks
-- **Team Independence**: Teams can develop and deploy services independently
-- **Fault Isolation**: Failure in one service doesn't bring down the entire system
-
-**Trade-offs:**
-
-- Increased complexity in deployment and monitoring
-- Network latency between services
-- Distributed transaction challenges
-
 ### 🔐 Security Implementation
 
 **Decision:** Multi-layered security with JWT tokens and role-based access control.
@@ -430,9 +417,8 @@ curl "http://localhost:8080/api/employees/all?page=0&size=5&sort=firstName,asc" 
 **Benefits:**
 
 - Single entry point for clients
-- Centralized cross-cutting concerns (auth, logging, rate limiting)
+- Centralized cross-cutting concerns (auth, logging)
 - Load balancing and service discovery integration
-- Reactive programming model for better performance
 
 ### 📡 Service Discovery
 
@@ -463,9 +449,6 @@ curl "http://localhost:8080/api/employees/all?page=0&size=5&sort=firstName,asc" 
 **Use Cases:**
 
 - Employee lifecycle events
-- Audit logging
-- Real-time notifications
-- Data synchronization between services
 
 ### 🗄️ Database Strategy
 
@@ -658,45 +641,6 @@ CREATE TABLE employees (
 }
 ```
 
-### Department Events (`department-events`)
-
-```json
-{
-  "eventType": "department.created",
-  "timestamp": "2024-10-31T10:30:00Z",
-  "departmentId": 5,
-  "data": {
-    "name": "Marketing",
-    "description": "Marketing and Communications",
-    "budget": 250000.0
-  },
-  "metadata": {
-    "userId": "admin",
-    "source": "employee-service",
-    "version": "1.0"
-  }
-}
-```
-
-### Audit Events (`audit-events`)
-
-```json
-{
-  "eventType": "user.login",
-  "timestamp": "2024-10-31T10:30:00Z",
-  "userId": "admin",
-  "data": {
-    "username": "admin",
-    "ipAddress": "192.168.1.100",
-    "userAgent": "curl/7.68.0",
-    "success": true
-  },
-  "metadata": {
-    "source": "auth-service",
-    "version": "1.0"
-  }
-}
-```
 
 ## 🛑 Stop Services
 
@@ -812,11 +756,9 @@ This project demonstrates:
 - Clean microservices separation
 - Proper service boundaries
 - Event-driven communication
-- Reactive programming patterns
 
 ### 🔐 **Security Best Practices**
 
-- Multi-layered security approach
 - JWT-based stateless authentication
 - Role-based access control
 - Input validation and sanitization
@@ -830,7 +772,6 @@ This project demonstrates:
 
 ### 🛠️ **Development Experience**
 
-- One-command deployment
 - Hot reloading for development
 - Comprehensive API documentation
 - Extensive test coverage
@@ -840,7 +781,6 @@ This project demonstrates:
 - Health checks and monitoring
 - Centralized configuration
 - Scalable Docker setup
-- CI/CD pipeline templates
 
 **Time to start**: < 2 minutes  
 **Commands needed**: Just `docker-compose up -d`
